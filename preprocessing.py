@@ -8,6 +8,35 @@ import warnings
 import random
 warnings.filterwarnings("ignore")
 
+# https://data-explorer.oecd.org/vis?lc=en&fs[0]=Topic%2C1%7CEconomy%23ECO%23%7CLeading%20indicators%23ECO_LEA%23&pg=0&fc=Topic&bp=true&snb=1&vw=ov&df[ds]=dsDisseminateFinalDMZ&df[id]=DSD_STES%40DF_CLI&df[ag]=OECD.SDD.STES&df[vs]=4.1&pd=2013-01%2C2024-11&dq=G20%2BUSA.M.BCICP...AA...H&to[TIME_PERIOD]=false
+def clean_external_data():
+    bc_indicators = pd.read_csv("data/business_confidence_indicators.csv")
+    bc_indicators = bc_indicators[['REF_AREA', 'TIME_PERIOD', 'OBS_VALUE']]
+    bc_indicators["OBS_VALUE"] = bc_indicators["OBS_VALUE"].astype('float32')
+    bc_indicators['period'] = pd.to_datetime(bc_indicators['TIME_PERIOD'])
+    bc_indicators = bc_indicators.drop(columns=['TIME_PERIOD'])
+    grouped_data = bc_indicators.groupby('REF_AREA')
+
+    # Create a list to store data tables
+    business_confidence_tables = []
+
+    for ref_area in grouped_data.groups.keys():
+        data_table = grouped_data.get_group(ref_area).copy()
+        data_table.rename(columns={'OBS_VALUE': f'{ref_area}_business_confidence'}, inplace=True)
+        data_table.reset_index(drop=True, inplace=True)
+        data_table.drop(columns=['REF_AREA'], inplace=True)
+        business_confidence_tables.append(data_table)
+
+    # First sort tables by period
+    for table in business_confidence_tables:
+        table.sort_values(by='period', inplace=True)
+        table.reset_index(drop=True, inplace=True)
+
+    # Merge all data tables in business_confidence_tables into one by merging on the 'period' column
+    bc_indicators_merged = pd.merge(business_confidence_tables[0], business_confidence_tables[1], on='period', how='inner')
+
+    return bc_indicators_merged
+
 def get_companies_with_full_observations(data):
 
     # Step 1: Extract year and prepare company data
@@ -51,7 +80,32 @@ def add_indicator_variables(df, missing_threshold=0.3):
     return df
 
 
-def create_lagged_and_percentage_change_features(dataframe):
+# def remove_outliers_iqr(df):
+#     # Get numeric columns
+#     numeric_columns = df.select_dtypes(include=['float']).columns
+
+#     df["year"] = df["period"].dt.year
+
+#     training = df[df["year"] < 2021]
+
+#     for column in numeric_columns:
+#         Q1 = training[column].quantile(0.25)  # First quartile
+#         Q3 = training[column].quantile(0.75)  # Third quartile
+#         IQR = Q3 - Q1  # Interquartile range
+        
+#         # Define bounds
+#         lower_bound = Q1 - 1.5 * IQR
+#         upper_bound = Q3 + 1.5 * IQR
+        
+#         # Replace outliers with NaN
+#         df.loc[(df[column] < lower_bound) | (df[column] > upper_bound), column] = np.nan
+
+#     # Drop the year column
+#     df.drop(columns=["year"], inplace=True) 
+#     return df
+
+
+def create_lagged_and_percentage_change_features(dataframe, imputed = True):
     """
     Creates lagged features (shifted by 1) and percentage changes for all float columns in the dataframe.
 
@@ -65,7 +119,7 @@ def create_lagged_and_percentage_change_features(dataframe):
     dataframe = dataframe.sort_values(by=["ticker", "period"]).reset_index(drop=True)
 
     # Identify float columns
-    float_columns = dataframe.select_dtypes(include=['float64']).columns
+    float_columns = dataframe.select_dtypes(include=['float']).columns
     
     # Create lagged features (shifted by 1 within each ticker group)
     lagged_features = dataframe.groupby("ticker")[float_columns].shift(1).add_suffix('_lag1')
@@ -85,9 +139,10 @@ def create_lagged_and_percentage_change_features(dataframe):
             (combined_dataframe[column] - combined_dataframe[lagged_col]) / combined_dataframe[lagged_col]  # Else: calculate percentage change
         )
 
-    # Fill NaN values for lagged and change columns
-    mask = combined_dataframe.columns.str.endswith('_lag1') | combined_dataframe.columns.str.endswith('_change')
-    combined_dataframe.loc[:, mask] = combined_dataframe.loc[:, mask].fillna(0)
+    if imputed:
+        # Fill NaN values for lagged and change columns
+        mask = combined_dataframe.columns.str.endswith('_lag1') | combined_dataframe.columns.str.endswith('_change')
+        combined_dataframe.loc[:, mask] = combined_dataframe.loc[:, mask].fillna(0)
     
     return combined_dataframe
 
@@ -130,6 +185,7 @@ def drop_highly_correlated_features(dataframe, threshold=0.9, method='spearman')
     """
     Identifies and collects features with high correlation (above a given threshold)
     based on the Spearman correlation matrix in an iterative manner.
+    Prioritizes dropping features with `lag_1` or `_change` suffixes.
 
     Parameters:
         dataframe (pd.DataFrame): The DataFrame containing the data.
@@ -156,9 +212,16 @@ def drop_highly_correlated_features(dataframe, threshold=0.9, method='spearman')
             if corr_matrix.iloc[i, j] > threshold:
                 col1 = corr_matrix.index[i]
                 col2 = corr_matrix.columns[j]
-                # Drop the second variable only if the first one hasn't been dropped
-                if col1 not in to_drop and col2 not in to_drop:
+                
+                # Prioritize dropping based on suffix
+                if col1.endswith('_lag1') or col1.endswith('_change'):
+                    to_drop.add(col1)
+                elif col2.endswith('_lag1') or col2.endswith('_change'):
                     to_drop.add(col2)
+                else:
+                    # Default behavior if no suffix preference
+                    if col1 not in to_drop and col2 not in to_drop:
+                        to_drop.add(col2)
 
     # Handle `_missing` variables
     missing_to_drop = set()
@@ -174,6 +237,8 @@ def drop_highly_correlated_features(dataframe, threshold=0.9, method='spearman')
 
 def one_hot_encode_year(df):
     df["year"] = df["period"].dt.year
+    # now we want to add an indicator_variable for labeling the observations with 1 where the year is less than 2021
+    df["pre_covid"] = (df["year"] < 2020).astype(int)
     df = pd.get_dummies(df, columns=["year"], drop_first=True)
     return df
 
@@ -240,11 +305,6 @@ def main():
     # Number of companies in the filtered dataset
     print(f"Number of observed companies: {reshaped_data.groupby('ticker')['ticker'].nunique().sum()}")
 
-    # Get the columns which have float64 as datatype and divide them by the Assets column, but Assets column should not be divided by itself
-    columns = reshaped_data.select_dtypes(include=['float64']).columns
-    columns = columns.drop("Assets")
-    reshaped_data[columns] = reshaped_data[columns].div(reshaped_data["Assets"], axis=0)
-
     # Calculate the EPS for each company
     reshaped_data["EPS"] = reshaped_data["NetIncomeLossAvailableToCommonStockholdersDiluted"] / reshaped_data["WeightedAverageNumberOfDilutedSharesOutstanding"]
 
@@ -286,6 +346,15 @@ def main():
     reshaped_data = add_indicator_variables(reshaped_data, missing_threshold=0.3)
 
     reshaped_data2 = reshaped_data.copy()
+    # Get the columns which have float64 as datatype and divide them by the Assets column, but Assets column should not be divided by itself
+    columns = reshaped_data.select_dtypes(include=['float64']).columns
+    columns = columns.drop("Assets")
+    columns = columns.drop("EPS")
+    reshaped_data[columns] = reshaped_data[columns].div(reshaped_data["Assets"], axis=0)
+    reshaped_data2[columns] = reshaped_data2[columns].div(reshaped_data2["Assets"], axis=0)
+
+    # Drop outliers
+    #reshaped_data = remove_outliers_iqr(reshaped_data)
 
     # Now we will compute the missing values. First we will impute the missing values with the median of the column group by the ticker. 
     # The median is based on the values smaller than 2021 to avoid information leakage.
@@ -307,8 +376,44 @@ def main():
 
     print(f"percentage of missing values after 0 filling: {reshaped_data.isna().sum().sum() / (reshaped_data.shape[0] * reshaped_data.shape[1])}")
 
+
+    # now merge the external data with the reshaped data. Both have the period column. Thereby the respective values in the external data should 
+    # be added to the reshaped data where the year and the month aligns with the period column in reshaped data
+    # Extract year and month for merging
+    reshaped_data['year'] = reshaped_data['period'].dt.year
+    reshaped_data['month'] = reshaped_data['period'].dt.month
+
+    external = clean_external_data()
+    external['year'] = external['period'].dt.year
+    external['month'] = external['period'].dt.month
+
+    # Merge on year and month
+    reshaped_data = pd.merge(
+        reshaped_data,
+        external[['year', 'month', 'G20_business_confidence', 'USA_business_confidence']],
+        on=['year', 'month'],
+        how='left'
+    )
+
+    reshaped_data2['year'] = reshaped_data2['period'].dt.year
+    reshaped_data2['month'] = reshaped_data2['period'].dt.month
+
+    # Merge on year and month
+    reshaped_data2 = pd.merge(
+        reshaped_data2,
+        external[['year', 'month', 'G20_business_confidence', 'USA_business_confidence']],
+        on=['year', 'month'],
+        how='left'
+    )
+
+
+   # Drop auxiliary columns
+    reshaped_data = reshaped_data.drop(columns=['year', 'month'])
+    reshaped_data2 = reshaped_data2.drop(columns=['year', 'month'])
+
+    # Create lagged and percentage change features
     reshaped_data = create_lagged_and_percentage_change_features(reshaped_data)
-    reshaped_data2 = create_lagged_and_percentage_change_features(reshaped_data2)
+    reshaped_data2 = create_lagged_and_percentage_change_features(reshaped_data2, imputed=False)
 
     # Example usage for determining the distribution of random variables:
     plot_random_variable_distributions(reshaped_data)
