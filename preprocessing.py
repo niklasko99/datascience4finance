@@ -235,11 +235,12 @@ def drop_highly_correlated_features(dataframe, threshold=0.9, method='spearman')
     return list(to_drop)
 
 
-def one_hot_encode_year(df):
-    df["year"] = df["period"].dt.year
+def time_regularization(df):
+    min_year = df['period'].dt.year.min()
+    df['time_elapsed'] = df['period'].dt.year - min_year
+
     # now we want to add an indicator_variable for labeling the observations with 1 where the year is less than 2021
-    df["pre_covid"] = (df["year"] < 2020).astype(int)
-    df = pd.get_dummies(df, columns=["year"], drop_first=True)
+    df["pre_covid"] = (df["period"].dt.year < 2020).astype(int)
     return df
 
 
@@ -326,13 +327,18 @@ def main():
     # Rolling window average (minimum 1 year for early cases)
     reshaped_data["Avg_EPS_change"] = (
         reshaped_data.groupby("ticker")["EPS_change"]
-        .rolling(window=4, min_periods=1)  # Allow partial windows initially
+        .rolling(window=4, min_periods=2)  # Allow partial windows initially
         .mean()
         .reset_index(level=0, drop=True)  # Reset index to align with original dataframe
     )
 
     # Compute detrended EPS
-    reshaped_data["Detrended_EPS"] = reshaped_data["EPS_change"] - reshaped_data["Avg_EPS_change"]
+    # Use EPS_change directly if Avg_EPS_change is NaN (first year)
+    reshaped_data["Detrended_EPS"] = np.where(
+        reshaped_data["Avg_EPS_change"].isna(),
+        reshaped_data["EPS_change"],   # Use EPS_change if Avg_EPS_change is missing
+        reshaped_data["EPS_change"] - reshaped_data["Avg_EPS_change"]  # Otherwise, detrend normally
+)
 
     # Binary dependent variable
     reshaped_data["y"] = (reshaped_data["Detrended_EPS"] >= 0).astype(int)
@@ -424,8 +430,13 @@ def main():
     reshaped_data.drop(columns=high_corr_features, inplace=True)
     reshaped_data2.drop(columns=high_corr_features, inplace=True)
 
-    reshaped_data = one_hot_encode_year(reshaped_data)
-    reshaped_data2 = one_hot_encode_year(reshaped_data2)
+    reshaped_data = time_regularization(reshaped_data)
+    reshaped_data2 = time_regularization(reshaped_data2)
+
+    # Please convert float64 columns to float32 to reduce memory usage
+    float_columns = reshaped_data.select_dtypes(include=['float64']).columns
+    reshaped_data[float_columns] = reshaped_data[float_columns].astype('float32')
+    reshaped_data2[float_columns] = reshaped_data2[float_columns].astype('float32')
 
     # Split the data into train and test
     train_imputed = reshaped_data[(reshaped_data["period"].dt.year < 2021)]
