@@ -1,1 +1,1 @@
-{"booster": "gbtree", "colsample_bytree": 0.6203074124157587, "gamma": 0.0182992572342599, "learning_rate": 0.018285031562111413, "max_depth": 3, "min_child_weight": 11, "n_estimators": 1176, "objective": "binary:logistic", "subsample": 0.8688104541180797}
+{"alpha": 5.526446347075765, "booster": "gbtree", "colsample_bytree": 0.7146165008513138, "gamma": 0.013862498908535161, "lambda": 0.40500249939049426, "learning_rate": 0.021204456624764327, "max_depth": 3, "min_child_weight": 24, "n_estimators": 1527, "objective": "binary:logistic", "subsample": 0.8148329708786621}
