@@ -199,7 +199,7 @@ def plot_parallel_coordinates_for_rf(results, path=None):
     plt.close()
 
 
-def plot_parallel_coordinates_for_xgboost(results, path=None):
+def plot_parallel_coordinates_for_xgb(results, path=None):
     """
     Plots parallel coordinates for XGBoost hyperparameter tuning results.
 
@@ -210,11 +210,12 @@ def plot_parallel_coordinates_for_xgboost(results, path=None):
     Returns:
         None
     """
-    # Initialize MinMaxScaler
+    # Initialize MinMaxScaler for feature scaling
     scaler = MinMaxScaler()
+    print(results.columns)
 
-    # Rename columns for readability
-    rename_columns = {
+    # Rename relevant columns for readability
+    results = results.rename(columns={
         'param_n_estimators': 'n_estimators',
         'param_learning_rate': 'learning_rate',
         'param_max_depth': 'max_depth',
@@ -224,19 +225,22 @@ def plot_parallel_coordinates_for_xgboost(results, path=None):
         'param_reg_lambda': 'reg_lambda',
         'param_reg_alpha': 'reg_alpha',
         'param_scale_pos_weight': 'scale_pos_weight',
-        'param_gamma': 'gamma'
-    }
-    results = results.rename(columns=rename_columns, errors='ignore')
+        'param_gamma': 'gamma',
+        'param_booster': 'booster',
+        'param_objective': 'objective'
+    })
 
-    # Normalize hyperparameters
-    for param in rename_columns.values():
-        if param in results.columns:
-            results[param] = scaler.fit_transform(results[param].values.reshape(-1, 1))
+    # If booster is "gbtree", set it to 1, else 0
+    results['booster'] = results['booster'].apply(lambda x: 1 if x == 'gbtree' else 0)
 
-    # Drop irrelevant columns if present
-    results = results.drop(columns=['std_test_score', 'rank_test_score'], errors='ignore')
+    # Normalize selected hyperparameters
+    for param in ['max_depth', 'min_child_weight', 'n_estimators']:
+        results[param] = scaler.fit_transform(results[param].values.reshape(-1, 1))
 
-    # Plot parallel coordinates
+    # Drop columns that are not relevant for plotting
+    results = results.drop(columns=['std_test_score', 'rank_test_score', 'objective'], errors='ignore')
+
+    # Plot the parallel coordinates
     plt.figure(figsize=(14, 7))
     parallel_coordinates(results, 'mean_test_score', colormap='viridis', alpha=0.25)
     plt.title("XGBoost Hyperparameter Tuning - Parallel Coordinates")
@@ -245,7 +249,7 @@ def plot_parallel_coordinates_for_xgboost(results, path=None):
     plt.grid(True)
     plt.legend().remove()
 
-    # Save plot if path is provided
+    # Save plot if path is specified
     if path:
         plt.savefig(path)
         print(f"Plot saved to {path}")
