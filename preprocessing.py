@@ -324,9 +324,17 @@ def main():
     # Calculate EPS change
     reshaped_data["EPS_change"] = reshaped_data["EPS+1"] - reshaped_data["EPS"]
 
-    # Rolling window average (minimum 1 year for early cases)
+    # Rolling window average (minimum 2 year for early cases)
     reshaped_data["Avg_EPS_change"] = (
         reshaped_data.groupby("ticker")["EPS_change"]
+        .rolling(window=4, min_periods=2)  # Allow partial windows initially
+        .mean()
+        .reset_index(level=0, drop=True)  # Reset index to align with original dataframe
+    )
+
+    # Rolling window average (minimum 2 year for early cases)
+    reshaped_data["EPS_moving_average"] = (
+        reshaped_data.groupby("ticker")["EPS"]
         .rolling(window=4, min_periods=2)  # Allow partial windows initially
         .mean()
         .reset_index(level=0, drop=True)  # Reset index to align with original dataframe
@@ -348,6 +356,7 @@ def main():
 
     # Reset index
     reshaped_data.reset_index(inplace=True, drop=True)
+    reshaped_data["EPS_moving_average"].fillna(0, inplace = True)
 
     reshaped_data = add_indicator_variables(reshaped_data, missing_threshold=0.3)
 
@@ -356,9 +365,14 @@ def main():
     columns = reshaped_data.select_dtypes(include=['float64']).columns
     columns = columns.drop("Assets")
     columns = columns.drop("EPS")
+    columns = columns.drop("EPS_moving_average")
     reshaped_data[columns] = reshaped_data[columns].div(reshaped_data["Assets"], axis=0)
     reshaped_data2[columns] = reshaped_data2[columns].div(reshaped_data2["Assets"], axis=0)
 
+    # second sanity check
+    print(reshaped_data.loc[reshaped_data["ticker"] == "aapl", ["EPS", "EPS_moving_average","period"]])
+
+    print(reshaped_data.head())
     # Drop outliers
     #reshaped_data = remove_outliers_iqr(reshaped_data)
 
