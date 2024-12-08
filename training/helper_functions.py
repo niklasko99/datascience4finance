@@ -227,7 +227,9 @@ def plot_parallel_coordinates_for_xgb(results, path=None):
         'param_scale_pos_weight': 'scale_pos_weight',
         'param_gamma': 'gamma',
         'param_booster': 'booster',
-        'param_objective': 'objective'
+        'param_objective': 'objective',
+        'param_lambda': 'lambda',
+        'param_alpha': 'alpha'
     })
 
     # If booster is "gbtree", set it to 1, else 0
