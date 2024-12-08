@@ -32,8 +32,8 @@ def main():
         'gamma': uniform(0.005, 0.015),  # Analogous to min_impurity_decrease (controls regularization)
         'booster': ['gbtree'],  # 'gbtree' used for tree-based models, similar to Random Forest
         'objective': ['binary:logistic'],  # Common objective for binary classification (similar to criterion for impurity calculation)
-        'lambda': uniform(0.1, 10.0),  # L2 regularization, increased range for stronger regularization
-        'alpha': uniform(0.1, 10.0),  # L1 regularization, increased range for stronger regularization
+        'lambda': uniform(10, 50),  # L2 regularization, increased range for stronger regularization
+        'alpha': uniform(10, 50),  # L1 regularization, increased range for stronger regularization
     }
 
     # Perform the random search:

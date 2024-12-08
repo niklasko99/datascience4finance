@@ -236,7 +236,7 @@ def plot_parallel_coordinates_for_xgb(results, path=None):
     results['booster'] = results['booster'].apply(lambda x: 1 if x == 'gbtree' else 0)
 
     # Normalize selected hyperparameters
-    for param in ['max_depth', 'min_child_weight', 'n_estimators']:
+    for param in ['max_depth', 'min_child_weight', 'n_estimators', 'alpha', 'lambda']:
         results[param] = scaler.fit_transform(results[param].values.reshape(-1, 1))
 
     # Drop columns that are not relevant for plotting
