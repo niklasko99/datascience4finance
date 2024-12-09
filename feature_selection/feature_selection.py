@@ -156,70 +156,81 @@ print(f"Sum of weights in feature importances: {sum_weights}")
 sum_weights_top = feature_importances.head(int(0.75 * len(feature_importances)))['Mean_Importance'].sum()
 print(f"Sum of weights in feature importances of the top 75%: {sum_weights_top}")
 
-# print("\n3RD ITERATION")
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+print("\n3RD ITERATION")
 
 # # 3RD ITERATION
-# # load feature importance scores (xgboost)
-# xgboost_importance3 = pd.read_csv('feature_selection/3rd_iteration/xgboost_importance_3rd_iteration.csv')
-# # other columns: feature, importance
+# Load feature importance scores
+xgboost_importance = pd.read_csv('feature_selection/3_iteration/xgb/xgb_feature_importances.csv')
+random_forest_importance = pd.read_csv('feature_selection/3_iteration/rf/rf_feature_importances.csv')
 
-# # Plot graph (bar charts) to visualize feature importance scores for xgboost
-# plt.figure(figsize=(14, 7))
-# plt.bar(xgboost_importance3['feature'], xgboost_importance3['importance'])
-# plt.axvline(x=0.6 * len(xgboost_importance3), color='red', linestyle='--')
-# plt.xticks([])
-# plt.title('Feature Importance Scores (XGBoost)')
-# plt.xlabel('Features')
-# plt.ylabel('Importance Scores')
-# plt.tight_layout()
-# plt.savefig('feature_selection/3rd_iteration/xgboost_importance_3rd_iteration.png')
+# Ensure feature lists are aligned
+assert set(xgboost_importance['Feature']) == set(random_forest_importance['Feature']), "Feature lists are not identical!"
 
-# # load feature importance scores (random forest)
-# random_forest_importance3 = pd.read_csv('feature_selection/3rd_iteration/rf_importance_3rd_iteration.csv')
-# # other columns: feature, importance
+# Merge importances on 'Feature'
+feature_importances = pd.merge(
+    xgboost_importance, random_forest_importance, on='Feature', suffixes=('_xgb', '_rf')
+)
 
-# # Plot graph (bar charts) to visualize feature importance scores for random forest
-# plt.figure(figsize=(14, 7))
-# plt.bar(random_forest_importance3['feature'], random_forest_importance3['importance'])
-# plt.axvline(x=0.6 * len(random_forest_importance3), color='red', linestyle='--')
-# plt.xticks([])
-# plt.title('Feature Importance Scores (Random Forest)')
-# plt.xlabel('Features')
-# plt.ylabel('Importance Scores')
-# plt.tight_layout()
-# plt.savefig('feature_selection/3rd_iteration/rf_importance_3rd_iteration.png')
-# plt.close()
+# Compute mean importance scores
+feature_importances['Mean_Importance'] = feature_importances[['Importance_xgb', 'Importance_rf']].mean(axis=1)
 
-# # Find features that have an importance of 0
-# xgboost_importance3_0 = xgboost_importance3[xgboost_importance3['importance'] == 0]
-# print("Number of features with importance 0 in xgboost: ", len(xgboost_importance3_0))
-# random_forest_importance3_0 = random_forest_importance3[random_forest_importance3['importance'] == 0]
-# print("Number of features with importance 0 in random forest: ", len(random_forest_importance3_0))
+# Sort by mean importance
+feature_importances = feature_importances.sort_values(by='Mean_Importance', ascending=False)
 
-# # Find features that have an importance of 0 for both xgboost and random forest
-# features3_0 = pd.merge(xgboost_importance3_0, random_forest_importance3_0, on='feature', how='inner')
-# print("Number of features with importance 0 for both xgboost and random forest: ", len(features3_0))
+# Plot Feature Importances (Mean)
+plt.figure(figsize=(14, 7))
+plt.bar(feature_importances['Feature'], feature_importances['Mean_Importance'], color='skyblue')
+plt.axvline(x=0.6 * len(feature_importances), color='red', linestyle='--', label='Top 75% Threshold')
+plt.xticks([])
+plt.title('Mean Feature Importance Scores (XGBoost + Random Forest)')
+plt.xlabel('Features')
+plt.ylabel('Mean Importance Scores')
+plt.legend()
+plt.tight_layout()
+plt.savefig('feature_selection/3_iteration/mean_feature_importance_2_iteration.png')
+plt.close()
 
-# # Find features whose difference in ranks (index) between xgboost and random forest is greater than 15
-# xgboost_importance3['index'] = xgboost_importance3.index
-# random_forest_importance3['index'] = random_forest_importance3.index
-# features_diff3 = pd.merge(xgboost_importance3, random_forest_importance3, on='feature', how='inner')
-# features_diff3['diff'] = abs(features_diff3['index_x'] - features_diff3['index_y'])
-# features_diff3 = features_diff3[features_diff3['diff'] > 15]
-# print("Number of features whose difference in ranks between xgboost and random forest is greater than 20 (10% of features): ", len(features_diff3))
+# Select Top 75% of features
+top_features = feature_importances.head(int(0.75 * len(feature_importances)))['Feature'].tolist()
 
-# # How many features are the same in the top 60% of features for both xgboost and random forest?
-# xgboost_importance3 = xgboost_importance3.sort_values(by='importance', ascending=False)
-# random_forest_importance3 = random_forest_importance3.sort_values(by='importance', ascending=False)
-# top_60_xgboost3 = xgboost_importance3.head(int(0.6 * len(xgboost_importance3)))
-# top_60_rf3 = random_forest_importance3.head(int(0.6 * len(random_forest_importance3)))
-# features_same_top3_60 = pd.merge(top_60_xgboost3, top_60_rf3, on='feature', how='inner')
-# print("Number of features that are the same in the top 60% (ca. 100) of features for both xgboost and random forest: ", len(features_same_top3_60))
+# Save Selected Features as JSON
+with open('feature_selection/3_iteration/top_features_mean.json', 'w') as f:
+    json.dump(top_features, f)
 
-# # Save features that are the same in the top 60% of features for both xgboost and random forest as json file
-# features_same3 = features_same_top3_60['feature'].tolist()
-# with open('feature_selection/3rd_iteration/features_same_top_60.json', 'w') as f:
-#     json.dump(features_same3, f)
+# Summary
+print(f"Number of total features: {len(xgboost_importance)}")
+print(f"Number of features selected (Top 75%): {len(top_features)}")
+
+# Identify Features with Zero Importance
+zero_importance_xgb = xgboost_importance[xgboost_importance['Importance'] == 0]
+zero_importance_rf = random_forest_importance[random_forest_importance['Importance'] == 0]
+
+# Number of Features with Zero Importance in xgb
+print(f"Number of features with importance 0 in xgboost: {len(zero_importance_xgb)}")
+
+# Number of Features with Zero Importance in rf
+print(f"Number of features with importance 0 in random forest: {len(zero_importance_rf)}")
+# Find Zero Importance in Both Models
+features_zero_in_both = pd.merge(zero_importance_xgb, zero_importance_rf, on='Feature')
+print(f"Number of features with importance 0 in both models: {len(features_zero_in_both)}")
+
+# get the sum of weights in xgboost_importance
+sum_weights_xgb = xgboost_importance['Importance'].sum()
+print(f"Sum of weights in xgboost: {sum_weights_xgb}")
+
+# get the sum of weights in random_forest_importance
+sum_weights_rf = random_forest_importance['Importance'].sum()
+print(f"Sum of weights in random forest: {sum_weights_rf}")
+
+# get the sum of weights in feature_importances
+sum_weights = feature_importances['Mean_Importance'].sum()
+print(f"Sum of weights in feature importances: {sum_weights}")
+# get the sum of weights in feature_importances of the top 60%
+sum_weights_top = feature_importances.head(int(0.75 * len(feature_importances)))['Mean_Importance'].sum()
+print(f"Sum of weights in feature importances of the top 75%: {sum_weights_top}")
+
 
 # # VISUALIZATION FOR REPORT
 

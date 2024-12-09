@@ -13,7 +13,7 @@ def main():
     test = pd.read_csv('data/test_imputed.csv')
 
     # create_training_and_test_sets
-    X_train, y_train, X_test, y_test, train, test = create_training_and_test_set(train, test, iteration=1)
+    X_train, y_train, X_test, y_test, train, test = create_training_and_test_set(train, test, iteration=2)
 
     # Create a random forest classifier:
     rf = RandomForestClassifier(random_state=42)
@@ -23,10 +23,10 @@ def main():
 
     # Adjusted hyperparameter ranges
     hyperparameter_ranges = {
-        'n_estimators': randint(550, 1300),  # Larger range for robustness, common in financial modeling #first 500
+        'n_estimators': randint(550, 1100),  # Larger range for robustness, common in financial modeling #first 500
         'max_features': ["sqrt"],  # Focus on square root of features for generalization
         'max_depth': randint(3, 6),  # Slightly increased depth range to capture more complexity
-        'min_samples_split': randint(20, 50),  # Wider range for splits to balance overfitting/generalization
+        'min_samples_split': randint(25, 55),  # Wider range for splits to balance overfitting/generalization
         'min_samples_leaf': randint(20, 45),  # Expanded range for leaf sizes to handle class imbalance
         'bootstrap': [True],  # Always true in Random Forest to enable bootstrapping
         'min_impurity_decrease': uniform(0.0015, 0.0045), # first 0.005
@@ -38,7 +38,7 @@ def main():
                                                                               X_train,
                                                                               y_train,
                                                                               hyperparameter_ranges,
-                                                                              n_iter=100,
+                                                                              n_iter=150,
                                                                               num_folds=3,
                                                                               best_hyperparameters_path='output/rf/rf_best_hyperparameters.json')
 
