@@ -24,16 +24,16 @@ def main():
     # Adjusted hyperparameter ranges for XGBoost corresponding to Random Forest parameters
     hyperparameter_ranges = {
         'n_estimators': randint(550, 1100),  # Same range for number of estimators
-        'max_depth': randint(3, 5),  # Same range for depth of trees
+        'max_depth': randint(3, 4),  # Same range for depth of trees
         'learning_rate': uniform(0.005, 0.045),  # Not directly equivalent, but it is necessary for gradient boosting algorithm
-        'subsample': uniform(0.5, 0.4),  # Analogous to min_samples_split (fraction of samples used per tree)
+        'subsample': uniform(0.55, 0.33),  # Analogous to min_samples_split (fraction of samples used per tree)
         'colsample_bytree': uniform(0.5, 0.35),  # Analogous to max_features (fraction of features used per tree)
-        'min_child_weight': randint(30, 50),  # Analogous to min_samples_leaf (controls the minimum sum of instance weight in a child)
-        'gamma': uniform(0.5, 5.0),  # Analogous to min_impurity_decrease (controls regularization)
+        'min_child_weight': randint(30, 45),  # Analogous to min_samples_leaf (controls the minimum sum of instance weight in a child)
+        'gamma': uniform(0.5, 4.0),  # Analogous to min_impurity_decrease (controls regularization)
         'booster': ['gbtree'],  # 'gbtree' used for tree-based models, similar to Random Forest
         'objective': ['binary:logistic'],  # Common objective for binary classification (similar to criterion for impurity calculation)
-        'lambda': uniform(45, 45),  # L2 regularization, increased range for stronger regularization
-        'alpha': uniform(18, 25),  # L1 regularization, increased range for stronger regularization
+        'lambda': uniform(52, 45),  # L2 regularization, increased range for stronger regularization
+        'alpha': uniform(15, 25),  # L1 regularization, increased range for stronger regularization
     }
 
     # Perform the random search:
