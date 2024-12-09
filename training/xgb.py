@@ -41,7 +41,7 @@ def main():
                                                                               X_train,
                                                                               y_train,
                                                                               hyperparameter_ranges,
-                                                                              n_iter=50,
+                                                                              n_iter=100,
                                                                               num_folds=3,
                                                                               best_hyperparameters_path='output/xgb/xgb_best_hyperparameters.json')
 
