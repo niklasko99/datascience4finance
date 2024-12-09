@@ -13,7 +13,7 @@ def main():
     test = pd.read_csv('data/test_imputed.csv')
 
     # create_training_and_test_sets
-    X_train, y_train, X_test, y_test, train, test = create_training_and_test_set(train, test, iteration=None)
+    X_train, y_train, X_test, y_test, train, test = create_training_and_test_set(train, test, iteration=1)
 
     # Create a random forest classifier:
     rf = RandomForestClassifier(random_state=42)
@@ -29,7 +29,7 @@ def main():
         'min_samples_split': randint(10, 50),  # Wider range for splits to balance overfitting/generalization
         'min_samples_leaf': randint(10, 50),  # Expanded range for leaf sizes to handle class imbalance
         'bootstrap': [True],  # Always true in Random Forest to enable bootstrapping
-        'min_impurity_decrease': uniform(0.0006, 0.015), # first 0.005
+        'min_impurity_decrease': uniform(0.001, 0.015), # first 0.005
         'criterion': ['entropy']  # Expanded criterion options for impurity calculation # only entropy first
 }
 

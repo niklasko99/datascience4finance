@@ -201,6 +201,8 @@ def plot_parallel_coordinates_for_rf(results, path=None):
     # if criterion is "gini", set it to 0, else 1
     results['criterion'] = results['criterion'].apply(lambda x: 0 if x == 'gini' else 1)
 
+    # drop criterion
+    results = results.drop(columns=['criterion'], errors='ignore')
     # Normalize selected hyperparameters
     for param in ['n_estimators', 'max_depth', 'min_samples_split', 'min_samples_leaf', 'min_impurity_decrease']:
         results[param] = scaler.fit_transform(results[param].values.reshape(-1, 1))
@@ -262,7 +264,8 @@ def plot_parallel_coordinates_for_xgb(results, path=None):
 
     # If booster is "gbtree", set it to 1, else 0
     results['booster'] = results['booster'].apply(lambda x: 1 if x == 'gbtree' else 0)
-
+    # drop booster
+    results = results.drop(columns=['booster'], errors='ignore')
     # Normalize selected hyperparameters
     for param in ['max_depth', 'min_child_weight', 'n_estimators', 'alpha', 'lambda', 'gamma', 'learning_rate', 'subsample', 'colsample_bytree']:
         results[param] = scaler.fit_transform(results[param].values.reshape(-1, 1))

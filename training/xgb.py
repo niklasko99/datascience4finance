@@ -28,7 +28,7 @@ def main():
         'learning_rate': uniform(0.005, 0.045),  # Not directly equivalent, but it is necessary for gradient boosting algorithm
         'subsample': uniform(0.5, 0.4),  # Analogous to min_samples_split (fraction of samples used per tree)
         'colsample_bytree': uniform(0.5, 0.35),  # Analogous to max_features (fraction of features used per tree)
-        'min_child_weight': randint(30, 65),  # Analogous to min_samples_leaf (controls the minimum sum of instance weight in a child)
+        'min_child_weight': randint(30, 50),  # Analogous to min_samples_leaf (controls the minimum sum of instance weight in a child)
         'gamma': uniform(0.5, 5.0),  # Analogous to min_impurity_decrease (controls regularization)
         'booster': ['gbtree'],  # 'gbtree' used for tree-based models, similar to Random Forest
         'objective': ['binary:logistic'],  # Common objective for binary classification (similar to criterion for impurity calculation)
