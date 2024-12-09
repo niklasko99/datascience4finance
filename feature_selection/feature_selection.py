@@ -232,70 +232,64 @@ sum_weights_top = feature_importances.head(int(0.75 * len(feature_importances)))
 print(f"Sum of weights in feature importances of the top 75%: {sum_weights_top}")
 
 
-# # VISUALIZATION FOR REPORT
+def plot_feature_importance(importances_df, top_features, model_name, save_path, top_n=100):
+    """
+    Plots feature importance with additional information on percentage of kept features.
+    
+    Parameters:
+        importances_df (pd.DataFrame): DataFrame with feature importance data.
+        top_features (list): List of kept features.
+        model_name (str): Name of the model (e.g., 'XGBoost').
+        save_path (str): File path to save the plot.
+        top_n (int): Number of top features to plot.
+    """
+    # Sort features by importance and filter top N
+    importances_df = importances_df.sort_values(by='Importance', ascending=False).head(top_n)
 
-# # XGBoost
-# # Sort and select the top 100 important features
-# xgboost_importance_top_100 = xgboost_importance.sort_values(by='importance', ascending=False).head(100)
+    # Calculate percentage of kept features
+    total_top_features = len(importances_df)
+    kept_features = sum(1 for x in importances_df['Feature'] if x in top_features)
+    kept_percentage = (kept_features / total_top_features) * 100
 
-# # Create a figure and main subplot
-# fig, ax = plt.subplots(figsize=(14, 7))
-# ax.bar(xgboost_importance['feature'], xgboost_importance['importance'])
-# ax.bar(xgboost_importance['feature'][0], xgboost_importance['importance'][0], width=1.5, color='tab:blue')
-# ax.set_xticks([])
-# ax.set_title('Feature Importance Scores (XGBoost)')
-# ax.set_xlabel('All Features')
-# ax.set_ylabel('Importance Scores')
+    # Create the figure and axes
+    fig, ax = plt.subplots(figsize=(14, 7))
 
-# # Add an inset subplot
-# left, bottom, width, height = [0.565, 0.4, 0.4, 0.5]
-# ax_inset = fig.add_axes([left, bottom, width, height])
-# colors = ['green' if x in features_same3 else 'blue' for x in xgboost_importance_top_100['feature']]
-# ax_inset.bar(xgboost_importance_top_100['feature'], xgboost_importance_top_100['importance'], color=colors)
-# ax_inset.set_xticks([])
-# ax_inset.set_title('Top 100 Features of First Iteration')
-# ax_inset.set_xlabel('Features', fontsize=12)
-# ax_inset.set_ylabel('Importance Scores', fontsize=12)
+    # Define colors based on feature selection
+    colors = ['#2ca02c' if x in top_features else '#1f77b4' for x in importances_df['Feature']]
 
-# # Create a custom legend
-# legend_labels = ['Kept Features', 'Removed Features']
-# legend_colors = ['green', 'blue']
-# handles = [plt.Rectangle((0, 0), 1, 1, color=color) for color in legend_colors]
-# ax_inset.legend(handles, legend_labels, title='Feature Status')
+    # Plot feature importances
+    ax.bar(importances_df['Feature'], importances_df['Importance'], color=colors)
 
-# # Adjust layout and save the figure
-# plt.tight_layout()
-# plt.savefig('plots_for_report/xgboost_importance_kept_features.png')
-# plt.close()
+    # Customize axis labels and title
+    ax.set_xticks([])
+    ax.set_title(f'{model_name} Top {top_n} Feature Importance After First Iteration', 
+                 fontsize=14, fontweight='bold')
+    ax.set_xlabel('Features', fontsize=14)
+    ax.set_ylabel('Importance Scores', fontsize=14)
 
-# # Sort and select the top 100 important features
-# random_forest_importance_top_100 = random_forest_importance.sort_values(by='importance', ascending=False).head(100)
+    # Add gridlines for Y-axis
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
 
-# # Create a figure and main subplot
-# fig, ax = plt.subplots(figsize=(14, 7))
-# ax.bar(random_forest_importance['feature'], random_forest_importance['importance'])
-# ax.set_xticks([])
-# ax.set_title('Feature Importance Scores (Random Forest)')
-# ax.set_xlabel('All Features')
-# ax.set_ylabel('Importance Scores')
+    # Add percentage information on the right side
+    percentage_info = f"{kept_percentage:.1f}%\nof Top {top_n}\nFeatures\nWere Kept"
+    ax.text(1.02, 0.5, percentage_info, transform=ax.transAxes, fontsize=14, 
+            fontweight='bold', color='black', ha='center', va='center', bbox=dict(boxstyle="round", facecolor="#f0f0f0"))
 
-# # Add an inset subplot
-# left, bottom, width, height = [0.565, 0.4, 0.4, 0.5]
-# ax_inset = fig.add_axes([left, bottom, width, height])
-# colors = ['green' if x in features_same3 else 'blue' for x in random_forest_importance_top_100['feature']]
-# ax_inset.bar(random_forest_importance_top_100['feature'], random_forest_importance_top_100['importance'], color=colors)
-# ax_inset.set_xticks([])
-# ax_inset.set_title('Top 100 Features of First Iteration')
-# ax_inset.set_xlabel('Features', fontsize=12)
-# ax_inset.set_ylabel('Importance Scores', fontsize=12)
+    # Add custom legend
+    legend_labels = ['Kept Features', 'Removed Features']
+    legend_colors = ['#2ca02c', '#1f77b4']
+    handles = [plt.Rectangle((0, 0), 1, 1, color=color) for color in legend_colors]
+    ax.legend(handles, legend_labels, title='Feature Status', fontsize=12, title_fontsize=13, loc='upper right')
 
-# # Create a custom legend
-# legend_labels = ['Kept Features', 'Removed Features']
-# legend_colors = ['green', 'blue']
-# handles = [plt.Rectangle((0, 0), 1, 1, color=color) for color in legend_colors]
-# ax_inset.legend(handles, legend_labels, title='Feature Status')
+    # Final layout adjustments
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300)
+    plt.close()
 
-# # Adjust layout and save the figure
-# plt.tight_layout()
-# plt.savefig('plots_for_report/rf_importance_kept_features.png')
-# plt.close()
+
+# Load Data for XGBoost and Random Forest
+xgboost_importance = pd.read_csv('feature_selection/1_iteration/xgb/xgb_feature_importances.csv')
+rf_importance = pd.read_csv('feature_selection/1_iteration/rf/rf_feature_importances.csv')
+# Plot Feature Importance for Both Models
+plot_feature_importance(xgboost_importance, top_features, 'XGBoost', 'feature_selection/xgb_importance_kept_features.png', 150)
+plot_feature_importance(rf_importance, top_features, 'Random Forest', 'feature_selection/rf_importance_kept_features.png', 150)
