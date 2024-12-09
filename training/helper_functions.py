@@ -79,45 +79,68 @@ def search_cv(model,
     Performs time-series cross-validation and randomized hyperparameter tuning.
 
     Parameters:
-        model: Machine learning model.
-        X_train (pd.DataFrame): Training features.
-        y_train (pd.Series): Training labels.
-        hyperparameters (dict): Hyperparameter search space.
-        n_iter (int): Number of iterations for search.
-        num_folds (int): Number of time-series folds for cross-validation.
-        best_hyperparameters_path (str): Path to save the best hyperparameters.
+        model: Machine learning model compatible with `RandomizedSearchCV` (e.g., from Scikit-Learn).
+        X_train (pd.DataFrame): Feature matrix for training.
+        y_train (pd.Series): Target variable corresponding to X_train.
+        hyperparameters (dict): Dictionary specifying the hyperparameter search space.
+        n_iter (int): Number of iterations for random hyperparameter sampling.
+        num_folds (int): Number of time-series splits (folds) for cross-validation.
+        best_hyperparameters_path (str): File path to save the best hyperparameters in JSON format.
 
     Returns:
-        tuple: search, best_model, best_hyperparameters
+        tuple:
+            - search (RandomizedSearchCV): The fitted RandomizedSearchCV object.
+            - best_model: Best model instance with the optimal hyperparameters found during search.
+            - best_hyperparameters (dict): Dictionary of the best hyperparameter values.
+            - validation_roc_data (list of tuples): ROC curve data for validation folds. 
+              Each tuple contains (fpr, tpr, roc_auc) for a fold.
     """
-    # Define time-series cross-validation
+    # Initialize time-series cross-validation strategy
     tscv = TimeSeriesSplit(n_splits=num_folds)
 
-    # Initialize RandomizedSearchCV
+    # Set up RandomizedSearchCV with the given model and hyperparameter search space
     search = RandomizedSearchCV(
-        model,
-        hyperparameters,
-        n_iter=n_iter,
-        scoring='roc_auc',
-        n_jobs=-1,
-        cv=tscv,
-        random_state=42,
-        verbose=3
+        model,  # The base machine learning model
+        hyperparameters,  # Hyperparameter search space
+        n_iter=n_iter,  # Number of hyperparameter combinations to evaluate
+        scoring='roc_auc',  # Use ROC AUC as the evaluation metric
+        n_jobs=-1,  # Use all available CPU cores for parallel processing
+        cv=tscv,  # Use time-series cross-validation
+        random_state=42,  # Ensure reproducibility
+        verbose=3  # Print progress during search
     )
     
-    # Fit model using search
+    # Perform hyperparameter search using RandomizedSearchCV
     search.fit(X_train, y_train)
 
-    # Extract best model and hyperparameters
-    best_model = search.best_estimator_
-    best_hyperparameters = search.best_params_
+    # Extract the best model and its hyperparameters
+    best_model = search.best_estimator_  # Best model instance
+    best_hyperparameters = search.best_params_  # Optimal hyperparameters
 
-    # Save model and hyperparameters
+    # Save the best hyperparameters to a JSON file for reproducibility
     print("Best model and hyperparameters found. Saving to disk...")
     with open(best_hyperparameters_path, 'w') as f:
         json.dump(best_hyperparameters, f)
 
-    return search, best_model, best_hyperparameters
+    # Collect ROC curve data for validation folds
+    validation_roc_data = []  # List to store (fpr, tpr, auc) for each fold
+    for train_idx, val_idx in tscv.split(X_train):
+        # Split training data into current training and validation sets
+        X_train_fold, X_val_fold = X_train.iloc[train_idx], X_train.iloc[val_idx]
+        y_train_fold, y_val_fold = y_train.iloc[train_idx], y_train.iloc[val_idx]
+        
+        # Train the model on the current fold's training data
+        best_model.fit(X_train_fold, y_train_fold)
+        
+        # Predict probabilities for the validation set
+        y_val_pred_prob = best_model.predict_proba(X_val_fold)[:, 1]
+        
+        # Compute the ROC curve and AUC for the validation set
+        fpr, tpr, _ = roc_curve(y_val_fold, y_val_pred_prob)  # False positive rate and true positive rate
+        roc_auc = roc_auc_score(y_val_fold, y_val_pred_prob)  # Area under the ROC curve
+        validation_roc_data.append((fpr, tpr, roc_auc))  # Store fold data
+
+    return search, best_model, best_hyperparameters, validation_roc_data
 
 
 def save_cv_results(search, best_hyperparameters, path):
@@ -236,7 +259,7 @@ def plot_parallel_coordinates_for_xgb(results, path=None):
     results['booster'] = results['booster'].apply(lambda x: 1 if x == 'gbtree' else 0)
 
     # Normalize selected hyperparameters
-    for param in ['max_depth', 'min_child_weight', 'n_estimators', 'alpha', 'lambda']:
+    for param in ['max_depth', 'min_child_weight', 'n_estimators', 'alpha', 'lambda', 'gamma', 'learning_rate', 'subsample', 'colsample_bytree']:
         results[param] = scaler.fit_transform(results[param].values.reshape(-1, 1))
 
     # Drop columns that are not relevant for plotting
@@ -394,63 +417,113 @@ def evaluate_model(best_model,
         return results
 
 
-def plot_train_test_roc_curve(model, 
-                              X_train, 
-                              y_train, 
-                              X_test, 
-                              y_test, 
+def plot_valid_test_roc_curve(model,
+                              validation_roc_data,
+                              final_evaluation=False,
+                              only_test_curve=False, 
+                              X_test=None, 
+                              y_test=None, 
                               path=None):
     """
-    Plots ROC curves for both training and test sets.
+    Plots ROC curves for validation (and optionally test) sets.
 
     Parameters:
         model: Trained classifier with `predict_proba`.
-        X_train, y_train: Training features and labels.
-        X_test, y_test: Test features and labels.
+        validation_roc_data: List of tuples containing FPR, TPR, and AUC for validation folds.
+        final_evaluation (bool): If True, allows plotting the test set ROC curve.
+        only_test_curve (bool): If True and final_evaluation is enabled, plots only the test ROC curve.
+        X_test (pd.DataFrame, optional): Test feature set.
+        y_test (pd.Series, optional): Test labels.
         path (str, optional): Path to save the plot if provided.
 
     Returns:
-        train_auc, test_auc (float): AUC scores for training and test sets.
+        dict: Contains validation AUC and (if applicable) test AUC.
     """
-    # Get predicted probabilities for both sets
-    y_train_pred = model.predict_proba(X_train)[:, 1]
-    y_test_pred = model.predict_proba(X_test)[:, 1]
+    # Initialize AUC results
+    test_auc = None
 
-    # Calculate ROC curve and AUC
-    fpr_train, tpr_train, _ = roc_curve(y_train, y_train_pred)
-    fpr_test, tpr_test, _ = roc_curve(y_test, y_test_pred)
-    train_auc = roc_auc_score(y_train, y_train_pred)
-    test_auc = roc_auc_score(y_test, y_test_pred)
+    # Plot only the test curve if `only_test_curve` is True and `final_evaluation` is enabled
+    if only_test_curve and final_evaluation:
+        if X_test is not None and y_test is not None:
+            # Compute test ROC
+            y_test_pred = model.predict_proba(X_test)[:, 1]
+            fpr_test, tpr_test, _ = roc_curve(y_test, y_test_pred)
+            test_auc = roc_auc_score(y_test, y_test_pred)
 
-    # Plot the ROC curves
+            # Plot the test ROC curve
+            plt.figure(figsize=(10, 8))
+            plt.plot(fpr_test, tpr_test, linestyle="-", label=f"Test ROC (AUC = {test_auc:.3f})", color="green")
+            plt.plot([0, 1], [0, 1], "k--", label="Random Classifier (AUC = 0.5)")
+
+            # Add labels and legend
+            plt.title("Test ROC Curve")
+            plt.xlabel("False Positive Rate")
+            plt.ylabel("True Positive Rate")
+            plt.legend(loc="lower right")
+            plt.grid(alpha=0.3)
+
+            # Save plot if path is provided
+            if path:
+                plt.savefig(path, bbox_inches="tight")
+                print(f"Test ROC curve plot saved to {path}")
+
+            plt.show()
+            plt.close()
+
+        else:
+            print("Error: X_test and y_test must be provided to plot the test ROC curve.")
+        return {"validation_auc": "N/A", "test_auc": test_auc if test_auc is not None else "N/A"}
+
+    # Plot validation and optionally test ROC curves if `only_test_curve` is False
+    mean_fpr = np.linspace(0, 1, 100)
+    mean_tpr = np.zeros_like(mean_fpr)
+
+    # Compute mean ROC for validation folds
+    for fpr, tpr, _ in validation_roc_data:
+        mean_tpr += np.interp(mean_fpr, fpr, tpr)
+    mean_tpr /= len(validation_roc_data)
+    mean_auc = np.mean([roc_auc for _, _, roc_auc in validation_roc_data])
+
+    # Initialize plot
     plt.figure(figsize=(10, 8))
-    plt.plot(fpr_train, tpr_train, linestyle="--", label=f"Training ROC (AUC = {train_auc:.3f})", color="blue")
-    plt.plot(fpr_test, tpr_test, linestyle="-", label=f"Test ROC (AUC = {test_auc:.3f})", color="green")
+
+    # Plot validation ROC curve
+    plt.plot(mean_fpr, mean_tpr, linestyle="--", label=f"Validation Mean ROC (AUC = {mean_auc:.3f})", color="blue")    
     plt.plot([0, 1], [0, 1], "k--", label="Random Classifier (AUC = 0.5)")
 
-    plt.title("ROC Curve - Train vs Test")
+    # Optionally plot test ROC curve if `final_evaluation` is True
+    if final_evaluation and X_test is not None and y_test is not None:
+        y_test_pred = model.predict_proba(X_test)[:, 1]
+        fpr_test, tpr_test, _ = roc_curve(y_test, y_test_pred)
+        test_auc = roc_auc_score(y_test, y_test_pred)
+        plt.plot(fpr_test, tpr_test, linestyle="-", label=f"Test ROC (AUC = {test_auc:.3f})", color="green")
+
+    # Add titles and labels
+    plt.title("ROC Curve")
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
     plt.legend(loc="lower right")
     plt.grid(alpha=0.3)
 
-    # Save the plot if a path is provided
+    # Save plot if path is provided
     if path:
         plt.savefig(path, bbox_inches="tight")
-        print(f"ROC curve saved to {path}")
+        print(f"ROC curve plot saved to {path}")
 
     plt.show()
     plt.close()
 
-    return train_auc, test_auc
+    # Return AUC results
+    return {"validation_auc": mean_auc, "test_auc": test_auc if test_auc is not None else "N/A"}
 
-def feature_importance_scaled(best_model, 
-                              X_train, 
-                              num_features=15, 
-                              plot_path=None, 
-                              csv_path=None):
+
+def feature_importance(best_model, 
+                       X_train, 
+                       num_features=15, 
+                       plot_path=None, 
+                       csv_path=None):
     """
-    Plots top feature importances and saves all feature importances scaled between 0 and 1.
+    Plots top feature importances and saves all feature importances as provided by the model.
 
     Parameters:
         best_model: Trained model with a `feature_importances_` attribute.
@@ -460,21 +533,17 @@ def feature_importance_scaled(best_model,
         csv_path (str, optional): Path to save the CSV file with feature importances.
 
     Returns:
-        feature_importance_df (pd.DataFrame): DataFrame containing scaled feature importances.
+        feature_importance_df (pd.DataFrame): DataFrame containing feature importances.
     """
     try:
-        # Extract raw feature importances
-        feature_importance = best_model.feature_importances_.reshape(-1, 1)
-
-        # Normalize feature importances to [0, 1]
-        scaler = MinMaxScaler()
-        scaled_importances = scaler.fit_transform(feature_importance).flatten()
+        # Extract feature importances
+        feature_importance = best_model.feature_importances_
 
         # Create DataFrame for CSV export
         feature_importance_df = pd.DataFrame({
             "Feature": X_train.columns,
-            "Importance (Scaled)": scaled_importances
-        }).sort_values(by="Importance (Scaled)", ascending=False)
+            "Importance": feature_importance
+        }).sort_values(by="Importance", ascending=False)
 
         # Save CSV if specified
         if csv_path:
@@ -486,8 +555,8 @@ def feature_importance_scaled(best_model,
 
         # Plot top features
         plt.figure(figsize=(10, 8))
-        plt.barh(top_features["Feature"], top_features["Importance (Scaled)"], color='skyblue')
-        plt.xlabel("Importance (Scaled 0-1)")
+        plt.barh(top_features["Feature"], top_features["Importance"], color='skyblue')
+        plt.xlabel("Feature Importance")
         plt.title(f"Top {num_features} Feature Importances")
         plt.grid(axis='x', linestyle='--', alpha=0.7)
         plt.gca().invert_yaxis()  # Invert y-axis for descending order
@@ -501,11 +570,6 @@ def feature_importance_scaled(best_model,
         plt.close()
 
         return feature_importance_df
-
-    except AttributeError:
-        print("Error: Model does not have a 'feature_importances_' attribute.")
-        return None
-
 
     except AttributeError:
         print("Error: Model does not have a 'feature_importances_' attribute.")
