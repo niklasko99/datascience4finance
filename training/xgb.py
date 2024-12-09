@@ -13,7 +13,7 @@ def main():
     test = pd.read_csv('data/test_imputed.csv')
 
     # Create_training_and_test_sets
-    X_train, y_train, X_test, y_test, train, test = create_training_and_test_set(train, test, iteration=1)
+    X_train, y_train, X_test, y_test, train, test = create_training_and_test_set(train, test, iteration=2)
 
     # Create an XGBoost classifier:
     xgb = XGBClassifier(random_state=42)
@@ -41,7 +41,7 @@ def main():
                                                                               X_train,
                                                                               y_train,
                                                                               hyperparameter_ranges,
-                                                                              n_iter=100,
+                                                                              n_iter=150,
                                                                               num_folds=3,
                                                                               best_hyperparameters_path='output/xgb/xgb_best_hyperparameters.json')
 
