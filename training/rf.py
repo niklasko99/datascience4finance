@@ -23,13 +23,13 @@ def main():
 
     # Adjusted hyperparameter ranges
     hyperparameter_ranges = {
-        'n_estimators': randint(550, 1700),  # Larger range for robustness, common in financial modeling #first 500
+        'n_estimators': randint(550, 1300),  # Larger range for robustness, common in financial modeling #first 500
         'max_features': ["sqrt"],  # Focus on square root of features for generalization
-        'max_depth': randint(2, 6),  # Slightly increased depth range to capture more complexity
-        'min_samples_split': randint(10, 50),  # Wider range for splits to balance overfitting/generalization
-        'min_samples_leaf': randint(10, 50),  # Expanded range for leaf sizes to handle class imbalance
+        'max_depth': randint(3, 6),  # Slightly increased depth range to capture more complexity
+        'min_samples_split': randint(20, 50),  # Wider range for splits to balance overfitting/generalization
+        'min_samples_leaf': randint(20, 45),  # Expanded range for leaf sizes to handle class imbalance
         'bootstrap': [True],  # Always true in Random Forest to enable bootstrapping
-        'min_impurity_decrease': uniform(0.001, 0.015), # first 0.005
+        'min_impurity_decrease': uniform(0.0015, 0.0045), # first 0.005
         'criterion': ['entropy']  # Expanded criterion options for impurity calculation # only entropy first
 }
 
@@ -38,7 +38,7 @@ def main():
                                                                               X_train,
                                                                               y_train,
                                                                               hyperparameter_ranges,
-                                                                              n_iter=50,
+                                                                              n_iter=100,
                                                                               num_folds=3,
                                                                               best_hyperparameters_path='output/rf/rf_best_hyperparameters.json')
 
