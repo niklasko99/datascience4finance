@@ -56,12 +56,17 @@ def create_training_and_test_set(train, test, iteration=None):
 
     # Load specific feature subsets if iteration is provided
     if iteration:
-        feature_file = f'features{iteration}.json'
+        feature_file = f'feature_selection/{iteration}_iteration/top_features_mean.json'
         try:
             with open(feature_file) as f:
                 features = json.load(f)
             X_train = X_train[features]
             X_test = X_test[features]
+            # print number of columns in X_train and X_test
+            
+            print(f"Number of columns in X_train: {X_train.shape[1]}")
+            print(f"Number of columns in X_test: {X_test.shape[1]}")
+
         except FileNotFoundError:
             print(f"Feature file {feature_file} not found. Using all features.")
 

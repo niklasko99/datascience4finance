@@ -13,7 +13,7 @@ def main():
     test = pd.read_csv('data/test_imputed.csv')
 
     # Create_training_and_test_sets
-    X_train, y_train, X_test, y_test, train, test = create_training_and_test_set(train, test, iteration=None)
+    X_train, y_train, X_test, y_test, train, test = create_training_and_test_set(train, test, iteration=1)
 
     # Create an XGBoost classifier:
     xgb = XGBClassifier(random_state=42)
