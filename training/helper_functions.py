@@ -174,120 +174,8 @@ def save_cv_results(search, best_hyperparameters, path):
 
 
 
-def plot_parallel_coordinates_for_rf(results, path=None):
-    """
-    Plots parallel coordinates for Random Forest hyperparameter tuning results.
-
-    Parameters:
-        results (pd.DataFrame): DataFrame containing cross-validation results.
-        path (str, optional): File path to save the plot. If None, the plot will not be saved.
-
-    Returns:
-        None
-    """
-    # Initialize MinMaxScaler for feature scaling
-    scaler = MinMaxScaler()
-    print(results.columns)
-    # Rename relevant columns for readability
-    results = results.rename(columns={
-        'param_n_estimators': 'n_estimators',
-        'param_max_depth': 'max_depth',
-        'param_min_samples_split': 'min_samples_split',
-        'param_min_samples_leaf': 'min_samples_leaf',
-        'param_min_impurity_decrease': 'min_impurity_decrease',
-        'param_criterion': 'criterion',
-    })
-
-    # if criterion is "gini", set it to 0, else 1
-    results['criterion'] = results['criterion'].apply(lambda x: 0 if x == 'gini' else 1)
-
-    # drop criterion
-    results = results.drop(columns=['criterion'], errors='ignore')
-    # Normalize selected hyperparameters
-    for param in ['n_estimators', 'max_depth', 'min_samples_split', 'min_samples_leaf', 'min_impurity_decrease']:
-        results[param] = scaler.fit_transform(results[param].values.reshape(-1, 1))
 
 
-    # Drop columns that are not relevant for plotting
-    results = results.drop(columns=['param_max_features', 'param_bootstrap', 
-                                    'std_test_score', 'rank_test_score'], errors='ignore')
-
-    # Plot the parallel coordinates
-    plt.figure(figsize=(14, 7))
-    parallel_coordinates(results, 'mean_test_score', colormap='viridis', alpha=0.25)
-    plt.title("Random Forest Hyperparameter Tuning - Parallel Coordinates")
-    plt.xlabel("Hyperparameters")
-    plt.ylabel("Normalized Values")
-    plt.grid(True)
-    plt.legend().remove()
-
-    # Save plot if path is specified
-    if path:
-        plt.savefig(path)
-        print(f"Plot saved to {path}")
-    plt.show()
-    plt.close()
-
-
-def plot_parallel_coordinates_for_xgb(results, path=None):
-    """
-    Plots parallel coordinates for XGBoost hyperparameter tuning results.
-
-    Parameters:
-        results (pd.DataFrame): DataFrame containing cross-validation results.
-        path (str, optional): File path to save the plot. If None, the plot will not be saved.
-
-    Returns:
-        None
-    """
-    # Initialize MinMaxScaler for feature scaling
-    scaler = MinMaxScaler()
-    print(results.columns)
-
-    # Rename relevant columns for readability
-    results = results.rename(columns={
-        'param_n_estimators': 'n_estimators',
-        'param_learning_rate': 'learning_rate',
-        'param_max_depth': 'max_depth',
-        'param_min_child_weight': 'min_child_weight',
-        'param_subsample': 'subsample',
-        'param_colsample_bytree': 'colsample_bytree',
-        'param_reg_lambda': 'reg_lambda',
-        'param_reg_alpha': 'reg_alpha',
-        'param_scale_pos_weight': 'scale_pos_weight',
-        'param_gamma': 'gamma',
-        'param_booster': 'booster',
-        'param_objective': 'objective',
-        'param_lambda': 'lambda',
-        'param_alpha': 'alpha'
-    })
-
-    # If booster is "gbtree", set it to 1, else 0
-    results['booster'] = results['booster'].apply(lambda x: 1 if x == 'gbtree' else 0)
-    # drop booster
-    results = results.drop(columns=['booster'], errors='ignore')
-    # Normalize selected hyperparameters
-    for param in ['max_depth', 'min_child_weight', 'n_estimators', 'alpha', 'lambda', 'gamma', 'learning_rate', 'subsample', 'colsample_bytree']:
-        results[param] = scaler.fit_transform(results[param].values.reshape(-1, 1))
-
-    # Drop columns that are not relevant for plotting
-    results = results.drop(columns=['std_test_score', 'rank_test_score', 'objective'], errors='ignore')
-
-    # Plot the parallel coordinates
-    plt.figure(figsize=(14, 7))
-    parallel_coordinates(results, 'mean_test_score', colormap='viridis', alpha=0.25)
-    plt.title("XGBoost Hyperparameter Tuning - Parallel Coordinates")
-    plt.xlabel("Hyperparameters")
-    plt.ylabel("Normalized Values")
-    plt.grid(True)
-    plt.legend().remove()
-
-    # Save plot if path is specified
-    if path:
-        plt.savefig(path)
-        print(f"Plot saved to {path}")
-    plt.show()
-    plt.close()
 
 
 def train_model(best_model, X_train, y_train, path):
@@ -583,3 +471,173 @@ def feature_importance(best_model,
         print("Error: Model does not have a 'feature_importances_' attribute.")
         return None
 
+
+# -----------------------
+def plot_parallel_coordinates_for_rf(results, path=None):
+    """
+    Plots parallel coordinates for Random Forest hyperparameter tuning results.
+
+    Parameters:
+        results (pd.DataFrame): DataFrame containing cross-validation results.
+        path (str, optional): File path to save the plot. If None, the plot will not be saved.
+
+    Returns:
+        None
+    """
+    # Initialize MinMaxScaler for feature scaling
+    scaler = MinMaxScaler()
+    print(results.columns)
+    # Rename relevant columns for readability
+    results = results.rename(columns={
+        'param_n_estimators': 'n_estimators',
+        'param_max_depth': 'max_depth',
+        'param_min_samples_split': 'min_samples_split',
+        'param_min_samples_leaf': 'min_samples_leaf',
+        'param_min_impurity_decrease': 'min_impurity_decrease',
+        'param_criterion': 'criterion',
+    })
+
+    # if criterion is "gini", set it to 0, else 1
+    results['criterion'] = results['criterion'].apply(lambda x: 0 if x == 'gini' else 1)
+
+    # drop criterion
+    results = results.drop(columns=['criterion'], errors='ignore')
+    # Normalize selected hyperparameters
+    for param in ['n_estimators', 'max_depth', 'min_samples_split', 'min_samples_leaf', 'min_impurity_decrease']:
+        results[param] = scaler.fit_transform(results[param].values.reshape(-1, 1))
+
+
+    # Drop columns that are not relevant for plotting
+    results = results.drop(columns=['param_max_features', 'param_bootstrap', 
+                                    'std_test_score', 'rank_test_score'], errors='ignore')
+
+    # Plot the parallel coordinates
+    plt.figure(figsize=(14, 7))
+    parallel_coordinates(results, 'mean_test_score', colormap='viridis', alpha=0.25)
+    plt.title("Random Forest Hyperparameter Tuning - Parallel Coordinates")
+    plt.xlabel("Hyperparameters")
+    plt.ylabel("Normalized Values")
+    plt.grid(True)
+    plt.legend().remove()
+
+    # Save plot if path is specified
+    if path:
+        plt.savefig(path)
+        print(f"Plot saved to {path}")
+    plt.show()
+    plt.close()
+
+
+def plot_parallel_coordinates_for_xgb(results, path=None):
+    """
+    Plots parallel coordinates for XGBoost hyperparameter tuning results.
+
+    Parameters:
+        results (pd.DataFrame): DataFrame containing cross-validation results.
+        path (str, optional): File path to save the plot. If None, the plot will not be saved.
+
+    Returns:
+        None
+    """
+    # Initialize MinMaxScaler for feature scaling
+    scaler = MinMaxScaler()
+    print(results.columns)
+
+    # Rename relevant columns for readability
+    results = results.rename(columns={
+        'param_n_estimators': 'n_estimators',
+        'param_learning_rate': 'learning_rate',
+        'param_max_depth': 'max_depth',
+        'param_min_child_weight': 'min_child_weight',
+        'param_subsample': 'subsample',
+        'param_colsample_bytree': 'colsample_bytree',
+        'param_reg_lambda': 'reg_lambda',
+        'param_reg_alpha': 'reg_alpha',
+        'param_scale_pos_weight': 'scale_pos_weight',
+        'param_gamma': 'gamma',
+        'param_booster': 'booster',
+        'param_objective': 'objective',
+        'param_lambda': 'lambda',
+        'param_alpha': 'alpha'
+    })
+
+    # If booster is "gbtree", set it to 1, else 0
+    results['booster'] = results['booster'].apply(lambda x: 1 if x == 'gbtree' else 0)
+    # drop booster
+    results = results.drop(columns=['booster'], errors='ignore')
+    # Normalize selected hyperparameters
+    for param in ['max_depth', 'min_child_weight', 'n_estimators', 'alpha', 'lambda', 'gamma', 'learning_rate', 'subsample', 'colsample_bytree']:
+        results[param] = scaler.fit_transform(results[param].values.reshape(-1, 1))
+
+    # Drop columns that are not relevant for plotting
+    results = results.drop(columns=['std_test_score', 'rank_test_score', 'objective'], errors='ignore')
+
+    # Plot the parallel coordinates
+    plt.figure(figsize=(14, 7))
+    parallel_coordinates(results, 'mean_test_score', colormap='viridis', alpha=0.25)
+    plt.title("XGBoost Hyperparameter Tuning - Parallel Coordinates")
+    plt.xlabel("Hyperparameters")
+    plt.ylabel("Normalized Values")
+    plt.grid(True)
+    plt.legend().remove()
+
+    # Save plot if path is specified
+    if path:
+        plt.savefig(path)
+        print(f"Plot saved to {path}")
+    plt.show()
+    plt.close()
+
+
+
+def plot_parallel_coordinates_for_logistic_regression(results, path=None):
+    """
+    Plots parallel coordinates for Logistic Regression hyperparameter tuning results.
+
+    Parameters:
+        results (pd.DataFrame): DataFrame containing cross-validation results.
+        path (str, optional): File path to save the plot. If None, the plot will not be saved.
+
+    Returns:
+        None
+    """
+    # Initialize MinMaxScaler for feature scaling
+    scaler = MinMaxScaler()
+    print("Available Columns:", results.columns)
+
+    # Rename relevant columns for readability
+    results = results.rename(columns={
+        'param_C': 'C',
+        'param_penalty': 'penalty',
+        'param_solver': 'solver',
+        'param_class_weight': 'class_weight',
+        'param_max_iter': 'max_iter'
+    })
+
+    # Encode categorical parameters as numerical values
+    #results['penalty'] = results['penalty'].map({'l1': 1, 'l2': 0}).fillna(-1)
+    results['solver'] = results['solver'].map({'liblinear': 1, 'saga': 0}).fillna(-1)
+    results['class_weight'] = results['class_weight'].map({'balanced': 1, None: 0}).fillna(-1)
+
+    # Normalize numerical hyperparameters
+    for param in ['C', 'max_iter']:
+        results[param] = scaler.fit_transform(results[param].values.reshape(-1, 1))
+
+    # Drop irrelevant columns
+    results = results.drop(columns=['std_test_score', 'rank_test_score'], errors='ignore')
+
+    # Plot the parallel coordinates
+    plt.figure(figsize=(14, 7))
+    parallel_coordinates(results, 'mean_test_score', colormap='viridis', alpha=0.25)
+    plt.title("Logistic Regression Hyperparameter Tuning - Parallel Coordinates")
+    plt.xlabel("Hyperparameters")
+    plt.ylabel("Normalized Values")
+    plt.grid(True)
+    plt.legend().remove()
+
+    # Save the plot if a path is specified
+    if path:
+        plt.savefig(path)
+        print(f"Plot saved to {path}")
+    plt.show()
+    plt.close()
