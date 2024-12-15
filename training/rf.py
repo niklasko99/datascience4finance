@@ -21,15 +21,27 @@ def main():
     # Define the hyperparameter ranges:
     # TODO: Redefine the hyperparameter ranges for the random forest
 
+#     # Adjusted hyperparameter ranges
+#     hyperparameter_ranges = {
+#         'n_estimators': randint(550, 1200),  # Larger range for robustness, common in financial modeling #first 500
+#         'max_features': ["sqrt"],  # Focus on square root of features for generalization
+#         'max_depth': randint(5, 6),  # Slightly increased depth range to capture more complexity
+#         'min_samples_split': randint(20, 40),  # Wider range for splits to balance overfitting/generalization
+#         'min_samples_leaf': randint(17, 25),  # Expanded range for leaf sizes to handle class imbalance
+#         'bootstrap': [True],  # Always true in Random Forest to enable bootstrapping
+#         'min_impurity_decrease': uniform(0.0003, 0.0025), # first 0.005
+#         'criterion': ['entropy']  # Expanded criterion options for impurity calculation # only entropy first
+# }
+
     # Adjusted hyperparameter ranges
     hyperparameter_ranges = {
-        'n_estimators': randint(550, 1200),  # Larger range for robustness, common in financial modeling #first 500
+        'n_estimators': randint(550, 1400),  # Larger range for robustness, common in financial modeling #first 500
         'max_features': ["sqrt"],  # Focus on square root of features for generalization
-        'max_depth': randint(5, 6),  # Slightly increased depth range to capture more complexity
-        'min_samples_split': randint(20, 40),  # Wider range for splits to balance overfitting/generalization
-        'min_samples_leaf': randint(17, 25),  # Expanded range for leaf sizes to handle class imbalance
+        'max_depth': randint(5, 9),  # Slightly increased depth range to capture more complexity
+        'min_samples_split': randint(10, 50),  # Wider range for splits to balance overfitting/generalization
+        'min_samples_leaf': randint(10, 35),  # Expanded range for leaf sizes to handle class imbalance
         'bootstrap': [True],  # Always true in Random Forest to enable bootstrapping
-        'min_impurity_decrease': uniform(0.0003, 0.0025), # first 0.005
+        'min_impurity_decrease': uniform(0.000, 0.0025), # first 0.005
         'criterion': ['entropy']  # Expanded criterion options for impurity calculation # only entropy first
 }
 

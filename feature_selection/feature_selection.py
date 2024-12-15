@@ -255,15 +255,15 @@ def plot_feature_importance(importances_df, top_features, model_name, save_path,
     fig, ax = plt.subplots(figsize=(14, 7))
 
     # Define colors based on feature selection
-    colors = ['#2ca02c' if x in top_features else '#1f77b4' for x in importances_df['Feature']]
+    colors = ['green' if x in top_features else 'crimson' for x in importances_df['Feature']]
 
     # Plot feature importances
     ax.bar(importances_df['Feature'], importances_df['Importance'], color=colors)
 
     # Customize axis labels and title
     ax.set_xticks([])
-    ax.set_title(f'{model_name} Top {top_n} Feature Importance After First Iteration', 
-                 fontsize=14, fontweight='bold')
+    # ax.set_title(f'{model_name} Top {top_n} Feature Importance After First Iteration', 
+    #              fontsize=14, fontweight='bold')
     ax.set_xlabel('Features', fontsize=14)
     ax.set_ylabel('Importance Scores', fontsize=14)
 
@@ -272,12 +272,12 @@ def plot_feature_importance(importances_df, top_features, model_name, save_path,
 
     # Add percentage information on the right side
     percentage_info = f"{kept_percentage:.1f}%\nof Top {top_n}\nFeatures\nWere Kept"
-    ax.text(1.02, 0.5, percentage_info, transform=ax.transAxes, fontsize=14, 
-            fontweight='bold', color='black', ha='center', va='center', bbox=dict(boxstyle="round", facecolor="#f0f0f0"))
+    # ax.text(1.02, 0.5, percentage_info, transform=ax.transAxes, fontsize=14, 
+    #         fontweight='bold', color='black', ha='center', va='center', bbox=dict(boxstyle="round", facecolor="#f0f0f0"))
 
     # Add custom legend
     legend_labels = ['Kept Features', 'Removed Features']
-    legend_colors = ['#2ca02c', '#1f77b4']
+    legend_colors = ['green', 'crimson']
     handles = [plt.Rectangle((0, 0), 1, 1, color=color) for color in legend_colors]
     ax.legend(handles, legend_labels, title='Feature Status', fontsize=12, title_fontsize=13, loc='upper right')
 
