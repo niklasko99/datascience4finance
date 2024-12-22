@@ -21,34 +21,24 @@ def main():
     # Define the hyperparameter ranges:
     # TODO: Redefine the hyperparameter ranges for the XGBoost
 
-#    # Adjusted hyperparameter ranges for XGBoost corresponding to Random Forest parameters
-#    hyperparameter_ranges = {
-#        'n_estimators': randint(550, 1100),  # Same range for number of estimators
-#        'max_depth': randint(3, 4),  # Same range for depth of trees
-#        'learning_rate': uniform(0.005, 0.045),  # Not directly equivalent, but it is necessary for gradient boosting algorithm
-#        'subsample': uniform(0.55, 0.33),  # Analogous to min_samples_split (fraction of samples used per tree)
-#        'colsample_bytree': uniform(0.5, 0.35),  # Analogous to max_features (fraction of features used per tree)
-#        'min_child_weight': randint(30, 45),  # Analogous to min_samples_leaf (controls the minimum sum of instance weight in a child)
-#        'gamma': uniform(0.5, 4.0),  # Analogous to min_impurity_decrease (controls regularization)
-#        'booster': ['gbtree'],  # 'gbtree' used for tree-based models, similar to Random Forest
-#        'objective': ['binary:logistic'],  # Common objective for binary classification (similar to criterion for impurity calculation)
-#        'lambda': uniform(52, 45),  # L2 regularization, increased range for stronger regularization
-#        'alpha': uniform(15, 25),  # L1 regularization, increased range for stronger regularization
-#    }
+    # hyperparameter_ranges = {
+    #     'n_estimators': randint(650, 700),  # Refined range for estimators
+    #     'max_depth': randint(3, 5),  # Refined range for depth
+    #     'learning_rate': uniform(0.04, 0.06),  # Narrowed learning rate range for finer tuning
+    #     'subsample': uniform(0.6, 0.1),  # Focused range for subsample (fraction of samples)
+    #     'colsample_bytree': uniform(0.65, 0.1),  # Refined range for feature sampling per tree
+    #     'min_child_weight': randint(35, 40),  # Focused range for min_child_weight (leaf node size)
+    #     'gamma': uniform(0.7, 1.5),  # Narrowed gamma range for better regularization control
+    #     'booster': ['gbtree'],  # Fixed booster type (as before)
+    #     'objective': ['binary:logistic'],  # Fixed objective (binary classification)
+    #     'lambda': uniform(55, 5),  # Keep L2 regularization range as is
+    #     'alpha': uniform(18, 8),  # Keep L1 regularization range as is
+    # }
 
-    hyperparameter_ranges = {
-        'n_estimators': randint(650, 700),  # Refined range for estimators
-        'max_depth': randint(3, 5),  # Refined range for depth
-        'learning_rate': uniform(0.04, 0.06),  # Narrowed learning rate range for finer tuning
-        'subsample': uniform(0.6, 0.1),  # Focused range for subsample (fraction of samples)
-        'colsample_bytree': uniform(0.65, 0.1),  # Refined range for feature sampling per tree
-        'min_child_weight': randint(35, 40),  # Focused range for min_child_weight (leaf node size)
-        'gamma': uniform(0.7, 1.5),  # Narrowed gamma range for better regularization control
-        'booster': ['gbtree'],  # Fixed booster type (as before)
-        'objective': ['binary:logistic'],  # Fixed objective (binary classification)
-        'lambda': uniform(55, 5),  # Keep L2 regularization range as is
-        'alpha': uniform(18, 8),  # Keep L1 regularization range as is
-    }
+    with open('output/xgb/xgb_best_hyperparameters.json', 'r') as f:
+        params = json.load(f)
+
+    hyperparameter_ranges = {key: [value] for key, value in params.items()}
 
 
     # Perform the random search:
@@ -56,7 +46,7 @@ def main():
                                                                               X_train,
                                                                               y_train,
                                                                               hyperparameter_ranges,
-                                                                              n_iter=150,
+                                                                              n_iter=1,
                                                                               num_folds=3,
                                                                               best_hyperparameters_path='output/xgb/xgb_best_hyperparameters.json')
 
@@ -65,9 +55,9 @@ def main():
                                      best_hyperparameters,
                                      'output/xgb/xgb_search_results.csv')
     
-    # Plot the search results:
-    plot_parallel_coordinates_for_xgb(search_results, 
-                                     'output/xgb/xgb_search_results.png')
+    # # Plot the search results:
+    # plot_parallel_coordinates_for_xgb(search_results, 
+    #                                  'output/xgb/xgb_search_results.png')
     
     
     # Train the model now
@@ -91,7 +81,7 @@ def main():
                              X_test,
                              y_test,
                              test,
-                             False,
+                             True,
                              'output/xgb/xgb_train_results.csv',
                              'output/xgb/xgb_test_results.csv',
                              'output/xgb/xgb_train_predictions.csv',
@@ -100,7 +90,7 @@ def main():
     # Plot the ROC curve:
     auc_score = plot_valid_test_roc_curve(best_model,
                                           validation_roc_data,
-                                          final_evaluation=False,
+                                          final_evaluation=True,
                                           only_test_curve=False,
                                           X_test = X_test,
                                           y_test = y_test,

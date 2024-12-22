@@ -1,0 +1,1 @@
+{"subsample": 0.6727271995856421, "objective": "binary:logistic", "n_estimators": 663, "min_child_weight": 38, "max_depth": 4, "learning_rate": 0.06698524800218594, "lambda": 59.21142387297499, "gamma": 0.7469699386833378, "colsample_bytree": 0.7067700327819991, "booster": "gbtree", "alpha": 19.66353330294551}

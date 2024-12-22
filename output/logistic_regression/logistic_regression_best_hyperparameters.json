@@ -1,1 +1,1 @@
-{"C": 0.34488521115218396, "class_weight": "balanced", "max_iter": 100, "solver": "saga"}
+{"solver": "saga", "max_iter": 100, "class_weight": "balanced", "C": 0.34488521115218396}

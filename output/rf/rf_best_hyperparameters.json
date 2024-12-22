@@ -1,1 +1,1 @@
-{"bootstrap": true, "criterion": "entropy", "max_depth": 8, "max_features": "sqrt", "min_impurity_decrease": 0.00018449141183849715, "min_samples_leaf": 12, "min_samples_split": 28, "n_estimators": 1081}
+{"bootstrap": true, "criterion": "entropy", "max_depth": 9, "max_features": "sqrt", "min_impurity_decrease": 0.0018136568830915082, "min_samples_leaf": 10, "min_samples_split": 36, "n_estimators": 1382}

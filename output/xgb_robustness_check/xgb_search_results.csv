@@ -1,0 +1,2 @@
+param_subsample,param_objective,param_n_estimators,param_min_child_weight,param_max_depth,param_learning_rate,param_lambda,param_gamma,param_colsample_bytree,param_booster,param_alpha,mean_test_score,std_test_score,rank_test_score
+0.6727271995856421,binary:logistic,663,38,4,0.06698524800218594,59.21142387297499,0.7469699386833378,0.7067700327819991,gbtree,19.66353330294551,0.709236645218088,0.03745093520354046,1
