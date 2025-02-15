@@ -180,5 +180,5 @@ This project builds on financial research, particularly:
 
 ## 📧 Contact
 For any questions or collaborations, feel free to reach out:
-- **Authors:** Alhamza Abu-ragheef, Berivan Kevser Yatki, Dogukan Dogu, Niklas Kothe
+- **Authors:** Berivan Kevser Yatki, Dogukan Dogu, Niklas Kothe
 - **Affiliation:** TUM - Technical University of Munich
